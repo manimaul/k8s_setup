@@ -105,6 +105,14 @@ spec:
       serviceAccountName: traefik
       terminationGracePeriodSeconds: 60
       hostNetwork: false
+      initContainers:
+        - name: init-traefik
+          image: debian:buster-slim
+          volumeMounts:
+            - name: acmevolume
+              mountPath: /mnt/acme
+          command: [ "/bin/bash","-c" ]
+          args: [ "chmod -R 700 /mnt/acme; chown -R 65532:65532 /mnt/acme" ]
       containers:
       - image: traefik:2.2.8
         imagePullPolicy: IfNotPresent
@@ -150,6 +158,8 @@ spec:
             mountPath: /data
           - name: tmp
             mountPath: /tmp
+          - name: acmevolume
+            mountPath: /mnt/acme
         args:
           - "--global.checknewversion"
           - "--entryPoints.traefik.address=:9000/tcp"
@@ -159,13 +169,36 @@ spec:
           - "--ping=true"
           - "--providers.kubernetescrd"
           - "--providers.kubernetesingress"
+          - "--certificatesresolvers.myresolver.acme.email=manimaul@gmail.com"
+          - "--certificatesresolvers.myresolver.acme.storage=/mnt/acme/acme.json"
+          - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+          # staging server
+          - "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+          # prod server
+          # - "--certificatesresolvers.myresolver.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
       volumes:
         - name: data
           emptyDir: {}
         - name: tmp
           emptyDir: {}
+        - name: acmevolume
+          persistentVolumeClaim:
+            claimName: acmevolume
       securityContext:
         fsGroup: 65532
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: acmevolume
+  namespace: traefikingress
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: linode-block-storage-retain
 ---
 apiVersion: v1
 kind: Service
