@@ -11,7 +11,7 @@ Start with a 3 node cluster:
 We will be installing the following components into the cluster:
 * [Linkerd stable-2.8.1](https://linkerd.io/)
   * Service Mesh
-* [Traefik 2.2.8](https://containo.us/traefik/)
+* [HA Proxy](https://www.haproxy.com/documentation/kubernetes/latest/)
   * Ingress Controller
 * [Cert Manager](https://cert-manager.io/)
   * x509 certificate management for Kubernetes
@@ -37,26 +37,24 @@ We will be installing the following components into the cluster:
 
 -------------------------------------------------
 
-# Install Traefik 2
+# Install HA Proxy
 
 ### install in cluster
+I've edited [github.com/haproxytech/kubernetes-ingress/haproxy-ingress.yaml](https://raw.githubusercontent.com/haproxytech/kubernetes-ingress/v1.4.7/deploy/haproxy-ingress.yaml) to suit.
 ```
-helm repo add traefik https://containous.github.io/traefik-helm-chart
-helm repo update
-kubectl create namespace traefik
-helm install --namespace traefik traefik traefik/traefik --values traefik/values.yaml
+kubectl apply -f haproxy/haproxy_ingress.yaml
 ```
 
 ### inject linkerd
 ```
-kubectl get -n traefik deploy -o yaml \
+kubectl get -n haproxy-controller deploy -o yaml \
   | linkerd inject - \
   | kubectl apply -f -
 ```
 
 ### view dashboard
 ```
-kubectl port-forward -n traefik $(kubectl get pods -n traefik --selector "app.kubernetes.io/name=traefik" --output=name) 9000:9000
+kubectl port-forward -n haproxy-controller haproxy-ingress-7d76995f66-8wjmz 8080:1024
 ```
 
 -------------------------------------------------
