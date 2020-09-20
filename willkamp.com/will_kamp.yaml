@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: willkamp
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: willkamp-web-scaler
+spec:
+  scaleTargetRef:
+    kind: ReplicaSet
+    name: willkamp-web-dep
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 50
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: willkamp-web-svc
+  namespace: willkamp
+spec:
+  ports:
+    - name: http
+      port: 8443
+      targetPort: 8443
+  selector:
+    app: willkamp-web-svc
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: willkamp-web-deb
+  namespace: willkamp
+spec:
+  selector:
+    matchLabels:
+      app: willkamp-web-svc
+  template:
+    metadata:
+      labels:
+        app: willkamp-web-svc
+    spec:
+      containers:
+        - image: manimaul/jacuzzi:0.1.1
+          name: willkamp-web-svc
+          ports:
+            - containerPort: 8443
+              name: http
+          resources:
+            requests:
+              cpu: 100m
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    haproxy.org/request-set-header: "l5d-dst-override willkamp-web-svc.willkamp.svc.cluster.local:8443"
+    haproxy.org/server-ssl: "true"
+  name: willkampingress
+  namespace: willkamp
+spec:
+  rules:
+    - host: willkamp.com
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: willkamp-web-svc
+              servicePort: 8443
+    - host: www.willkamp.com
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: willkamp-web-svc
+              servicePort: 8443
+
+  tls:
+    - hosts:
+        - willkamp.com
+        - www.willkamp.com
+      secretName: willkamp-cert
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: willkamp-cert
+  namespace: willkamp
+spec:
+  commonName: willkamp.com
+  secretName: willkamp-cert
+  dnsNames:
+    - willkamp.com
+    - www.willkamp.com
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer

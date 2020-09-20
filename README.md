@@ -75,6 +75,12 @@ kubectl apply -f cert_manager/cluster-issuer.yaml
 # Add a deployment 
 
 ```
+cat willkamp.com/will_kamp.yaml | linkerd inject - | kubectl apply -f -
+```
+
+OR 
+
+```
 curl https://raw.githubusercontent.com/manimaul/mxmariner.com/master/k8s.yml | linkerd inject - | kubectl apply -f -
 ```
 
