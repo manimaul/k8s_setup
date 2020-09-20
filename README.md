@@ -75,7 +75,7 @@ kubectl apply -f cert_manager/cluster-issuer.yaml
 # Add a deployment 
 
 ```
-cat mxmariner.com/mxmariner.yaml | linkerd inject - | kubectl apply -f -
+curl https://raw.githubusercontent.com/manimaul/mxmariner.com/master/k8s.yml | linkerd inject - | kubectl apply -f -
 ```
 
 # verify it works
