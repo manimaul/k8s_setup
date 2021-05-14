@@ -84,6 +84,10 @@ metadata:
   name: haproxy
   namespace: haproxy-controller
 data:
+  http-keep-alive: "true"
+  load-balance: "roundrobin"
+  rate-limit-requests: "900"
+  rate-limit-period: "1m"
 
 ---
 apiVersion: apps/v1
@@ -120,6 +124,7 @@ metadata:
 spec:
   selector:
     run: ingress-default-backend
+  type: NodePort
   ports:
     - name: port-1
       port: 8080
@@ -205,7 +210,7 @@ metadata:
 spec:
   selector:
     run: haproxy-ingress
-  type: NodePort
+  type: LoadBalancer
   ports:
     - name: http
       port: 80
@@ -215,7 +220,7 @@ spec:
       port: 443
       protocol: TCP
       targetPort: 443
-    - name: stat
-      port: 1024
-      protocol: TCP
-      targetPort: 1024
+#  - name: stat
+#    port: 1024
+#    protocol: TCP
+#    targetPort: 1024
