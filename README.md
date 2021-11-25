@@ -1,6 +1,6 @@
 # K8S Setup
 
-This documents my Linode Kubernetes 1.17 cluster setup. We will start with a single Linode Cluster in Femont, CA and later expand to multiple clusters as needed. DNS will be provided by AWS Route53 so that we can do latency based load balancing on the multi-cluster.
+This documents my Linode Kubernetes 1.21 cluster setup. DNS (provided by AWS Route53) points domain(s) to the NodeBalancer configured by the documented HA Proxy Ingress Controller. 
 
 Start with a 3 node cluster: 
 
