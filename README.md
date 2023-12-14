@@ -9,37 +9,27 @@ Start with a 3 node cluster:
 |2GB |$10    |$0.015|2GB|1   |50 GB  |
 
 We will be installing the following components into the cluster:
-* [HA Proxy](https://www.haproxy.com/documentation/kubernetes/latest/)
-  * Ingress Controller
+* [Istio](https://istio.io)
 * [Cert Manager](https://cert-manager.io/)
   * x509 certificate management for Kubernetes
 
 -------------------------------------------------
 
-# Install HA Proxy
+# Install Istio 
 
-### install in cluster
-I've edited [github.com/haproxytech/kubernetes-ingress/haproxy-ingress.yaml](https://raw.githubusercontent.com/haproxytech/kubernetes-ingress/v1.7/deploy/haproxy-ingress.yaml) to suit.
 ```shell
-kubectl apply -f haproxy/haproxy_ingress.yaml
+istioctl install
+kubectl label namespace default istio-injection=enabled
+kubectl label namespace mga istio-injection=enabled
+kubectl apply -f ./istio_ingress_class.yaml
 ```
-
-### view dashboard
-```shell
-
-kubectl port-forward -n haproxy-controller $(kubectl get pods -n haproxy-controller -l run=haproxy-ingress -o jsonpath='{.items[*].metadata.name}') 8080:1024
-# visit http://127.0.0.1:8080/
-```
-
 -------------------------------------------------
 
 # Install Cert Manager
 
-### install in cluster
 ```shell
-wget https://github.com/jetstack/cert-manager/releases/download/v1.6.0/cert-manager.yaml 
-kubectl apply -f cluster-issuer.yaml
-kubectl apply -f cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
+kubectl apply -f ./cluster-issuer.yaml
 ```
 
 -------------------------------------------------
@@ -47,11 +37,20 @@ kubectl apply -f cert-manager.yaml
 # Add a deployment 
 
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/manimaul/mxmariner.com/master/k8s.yml
+kubectl create ns check
+kubectl label namespace check istio-injection=enabled
+kubectl apply -f ./check/k8s.yml
 ```
 
 # verify it works
 
 ```shell
-echo | openssl s_client -showcerts -servername mxmariner.com -connect mxmariner.com:443 2>/dev/null | openssl x509 -inform pem -text | grep 'Issuer' 
+echo | openssl s_client -showcerts -servername check.manimaul.com -connect check.manimaul.com:443 2>/dev/null | openssl x509 -inform pem -text | grep 'Issuer' 
+```
+
+-------------------------------------------------
+
+# Inject existing deployment
+```shell
+istioctl kube-inject -f <file>.yaml | kubectl apply -f -
 ```
