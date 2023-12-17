@@ -12,7 +12,7 @@ spec:
     solvers:
       - http01:
           ingress:
-            ingressClassName: istio
+            ingressClassName: haproxy
 ---
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -27,6 +27,5 @@ spec:
       name: issuer-account-key-nonprod
     solvers:
       - http01:
-          ingress:
-            ingressClassName: istio
-
+          ingressClassName: haproxy
+---

@@ -1,34 +1,45 @@
 # K8S Setup
 
-This documents my Linode Kubernetes 1.21 cluster setup. DNS (provided by AWS Route53) points domain(s) to the NodeBalancer configured by the documented HA Proxy Ingress Controller. 
-
-Start with a 3 node cluster: 
-
-|Plan|Monthly|Hourly|RAM|CPUs|Storage|
-|----|-------|------|---|----|-------|
-|2GB |$10    |$0.015|2GB|1   |50 GB  |
+This documents my Linode Kubernetes
 
 We will be installing the following components into the cluster:
-* [Istio](https://istio.io)
+* [HA Proxy Ingress Controller](https://www.haproxy.com/documentation/kubernetes-ingress/community/installation/aws/)
 * [Cert Manager](https://cert-manager.io/)
-  * x509 certificate management for Kubernetes
 
--------------------------------------------------
+# Spin up Cluster 
 
-# Install Istio 
+- us-sea, 3 node, linode 4GB shared 2 cpu
+
+# Install HA Proxy
 
 ```shell
-istioctl install
-kubectl label namespace default istio-injection=enabled
-kubectl label namespace mga istio-injection=enabled
-kubectl apply -f ./istio_ingress_class.yaml
+helm repo add haproxytech https://haproxytech.github.io/helm-charts
+helm repo update
+helm install haproxy-kubernetes-ingress haproxytech/kubernetes-ingress \
+  --create-namespace \
+  --namespace haproxy-controller \
+  --set controller.ingressClass=null \
+  --set controller.service.type=LoadBalancer
+
+kubectl -n haproxy-controller edit svc happroxy-kubernetes-ingress
+# remove UDP port
+
+# show loadbalancer public IP
+kubectl -n haproxy-controller get svc 
 ```
--------------------------------------------------
 
 # Install Cert Manager
 
 ```shell
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
+helm repo add jetstack https://charts.jetstack.io --force-update
+
+helm install \
+  cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --create-namespace \
+  --version v1.16.2 \
+  --set crds.enabled=true
+
 kubectl apply -f ./cluster-issuer.yaml
 ```
 
@@ -37,20 +48,11 @@ kubectl apply -f ./cluster-issuer.yaml
 # Add a deployment 
 
 ```shell
-kubectl create ns check
-kubectl label namespace check istio-injection=enabled
-kubectl apply -f ./check/k8s.yml
+kubectl apply -f ./check.yaml
 ```
 
 # verify it works
 
 ```shell
 echo | openssl s_client -showcerts -servername check.manimaul.com -connect check.manimaul.com:443 2>/dev/null | openssl x509 -inform pem -text | grep 'Issuer' 
-```
-
--------------------------------------------------
-
-# Inject existing deployment
-```shell
-istioctl kube-inject -f <file>.yaml | kubectl apply -f -
 ```
