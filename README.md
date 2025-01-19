@@ -43,6 +43,59 @@ helm install \
 kubectl apply -f ./cluster-issuer.yaml
 ```
 
+# Monitoring 
+
+Install Prometheus + Grafana
+```shell
+kubectl create ns monitoring
+mkdir monitor
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm search kube
+helm show values prometheus-community/kube-prometheus-stack
+export GRAFANA_ADMINPASSWORD="<a password>"
+export HELM_CHART_VERSION="68.2.1"
+
+#dry run 
+helm install --namespace monitoring --dry-run \
+  kube-prom-stack prometheus-community/kube-prometheus-stack \
+  --version "${HELM_CHART_VERSION}" \
+  --namespace monitoring \
+  --values ./monitor/values.yaml \
+  --set grafana.adminPassword=$GRAFANA_ADMINPASSWORD \
+  --set prometheusOperator.createCustomResource=false > ./monitor/stack.yaml
+  
+#install
+helm install --namespace monitoring \
+  kube-prom-stack prometheus-community/kube-prometheus-stack \
+  --version "${HELM_CHART_VERSION}" \
+  --namespace monitoring \
+  --values ./monitor/values.yaml \
+  --set grafana.adminPassword=$GRAFANA_ADMINPASSWORD \
+  --set prometheusOperator.createCustomResource=false
+
+#upgrade
+helm upgrade --namespace monitoring \
+  --values ./monitor/values.yaml \
+  kube-prom-stack prometheus-community/kube-prometheus-stack \
+  --version "${HELM_CHART_VERSION}" 
+```
+
+```shell
+kubectl -n monitoring get svc
+
+kubectl -n monitoring port-forward \
+svc/kube-prom-stack-grafana 8080:80
+
+kubectl -n monitoring port-forward \
+svc/kube-prom-stack-kube-prome-prometheus 9090
+```
+
+Uninstall
+```shell
+helm uninstall kube-prom-stack
+```
+
 -------------------------------------------------
 
 # Add a deployment 
