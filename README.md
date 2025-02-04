@@ -19,10 +19,8 @@ helm install haproxy-kubernetes-ingress haproxytech/kubernetes-ingress \
   --create-namespace \
   --namespace haproxy-controller \
   --set controller.ingressClass=null \
-  --set controller.service.type=LoadBalancer
-
-kubectl -n haproxy-controller edit svc happroxy-kubernetes-ingress
-# remove UDP port
+  --set controller.service.type=LoadBalancer \
+  --set controller.service.enablePorts.quic=false
 
 # show loadbalancer public IP
 kubectl -n haproxy-controller get svc 
@@ -37,10 +35,17 @@ helm install \
   cert-manager jetstack/cert-manager \
   --namespace cert-manager \
   --create-namespace \
-  --version v1.16.2 \
+  --version v1.16.3 \
   --set crds.enabled=true
 
 kubectl apply -f ./cluster-issuer.yaml
+```
+
+# Metrics
+https://github.com/kubernetes-sigs/metrics-server
+```shell
+helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
+helm upgrade --install metrics-server metrics-server/metrics-server
 ```
 
 # Monitoring 
@@ -54,7 +59,7 @@ helm repo update
 helm search kube
 helm show values prometheus-community/kube-prometheus-stack
 export GRAFANA_ADMINPASSWORD="<a password>"
-export HELM_CHART_VERSION="68.2.1"
+export HELM_CHART_VERSION="68.4.4"
 
 #dry run 
 helm install --namespace monitoring --dry-run \
@@ -68,8 +73,8 @@ helm install --namespace monitoring --dry-run \
 #install
 helm install --namespace monitoring \
   kube-prom-stack prometheus-community/kube-prometheus-stack \
-  --version "${HELM_CHART_VERSION}" \
   --namespace monitoring \
+  --create-namespace \
   --values ./monitor/values.yaml \
   --set grafana.adminPassword=$GRAFANA_ADMINPASSWORD \
   --set prometheusOperator.createCustomResource=false

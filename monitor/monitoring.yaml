@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: grafana-cert
+  namespace: monitoring
+spec:
+  secretName: grafana-cert
+  commonName: metrics.manimaul.com
+  dnsNames:
+    - metrics.manimaul.com
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt-prod
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: monitoringingress
+  namespace: monitoring
+spec:
+  ingressClassName: haproxy
+  rules:
+    - host: metrics.manimaul.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kube-prom-stack-grafana
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - metrics.manimaul.com
+      secretName: grafana-cert
